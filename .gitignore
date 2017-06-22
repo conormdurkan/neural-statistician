@@ -1,0 +1,12 @@
+__pycache__/
+.idea/
+*.pyc
+
+scratch.py
+
+*.png
+
+*.m
+
+
+
