@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import time
 
 from skimage.io import imread
 from torch.utils import data
@@ -11,7 +12,7 @@ class YouTubeFacesSetsDataset(data.Dataset):
         self.path = '/home/conor/Dropbox/msc/thesis/data/youtube-faces/64'
         splits = {
             'test': slice(100),
-            'val': slice(100, 200),
+            'valid': slice(100, 200),
             'train': slice(200, 1595)
         }
         self.people = os.listdir(self.path)[splits[split]]
@@ -24,6 +25,10 @@ class YouTubeFacesSetsDataset(data.Dataset):
     def __getitem__(self, item):
         # person is chosen by iteration
         person = self.people[item]
+
+        # hack to solve multiprocessing rng issue
+        seed = int(str(time.time()).split('.')[1])
+        np.random.seed(seed=seed)
 
         # choose a video
         video = np.random.choice(self.videos[item])

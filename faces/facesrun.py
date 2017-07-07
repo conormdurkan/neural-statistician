@@ -54,13 +54,13 @@ def run(model, optimizer, loaders, datasets, epochs, viz_interval=-1, save_inter
 
 
 def main():
-    batch_size = 32
+    batch_size = 16
     sample_size = 5
-    n_features = 512  # output shape of convolutional encoder
+    n_features = 256 * 4 * 4  # output shape of convolutional encoder
 
     # create datasets
     train_dataset = YouTubeFacesSetsDataset(split='train')
-    test_dataset = YouTubeFacesSetsDataset(split='test')
+    test_dataset = YouTubeFacesSetsDataset(split='valid')
     datasets = (train_dataset, test_dataset)
 
     # create loaders
@@ -75,14 +75,14 @@ def main():
         'batch_size': batch_size,
         'sample_size': sample_size,
         'n_features': n_features,
-        'c_dim': 500,
-        'n_hidden_statistic': 3,
+        'c_dim': 512,
+        'n_hidden_statistic': 1,
         'hidden_dim_statistic': 1000,
-        'n_stochastic': 3,
-        'z_dim': 16,
-        'n_hidden': 3,
+        'n_stochastic': 1,
+        'z_dim': 32,
+        'n_hidden': 1,
         'hidden_dim': 1000,
-        'nonlinearity': F.relu,
+        'nonlinearity': F.elu,
         'print_vars': True
     }
     model = Statistician(**model_kwargs)
@@ -96,7 +96,7 @@ def main():
         state = torch.load(path)
         model.load_state_dict(state['model_state'])
     else:
-        epochs = 300
+        epochs = 500
         run(model, optimizer, loaders, datasets, epochs,
             viz_interval=1, save_interval=5)
 

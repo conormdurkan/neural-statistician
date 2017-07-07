@@ -2,18 +2,9 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.colors import Normalize
 
 
 def scatter_contexts(contexts, labels, distributions, savepath=None):
-    """
-    
-    :param contexts: 
-    :param labels: 
-    :param distributions: 
-    :param savepath: 
-    :return: 
-    """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -38,34 +29,26 @@ def scatter_contexts(contexts, labels, distributions, savepath=None):
     plt.tick_params(axis='both', which='both', bottom='off', top='off', labelbottom='off',
                     right='off', left='off', labelleft='off')
     plt.legend(loc='upper left')
-
+    plt.tight_layout()
     plt.show()
 
     if savepath is not None:
         plt.savefig(savepath)
 
 
-def contexts_by_moment(data, moments, savepath=None, which='mean'):
-    """
-    
-    :param data: 
-    :param moments: 
-    :param savepath: 
-    :param which: 
-    :return: 
-    """
-    # TODO: Fix this
-    pass
-    # data = ns.test2c()
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    #
-    # ax.scatter(data[:, 0], data[:, 1], data[:, 2], c=provider.data_set['means'],
-    #            norm=Normalize)
-    #
-    # plt.tick_params(axis='both', which='both', bottom='off', top='off', labelbottom='off',
-    #                 right='off', left='off', labelleft='off')
-    # plt.legend(loc='upper left')
-    #
-    # plt.show()
-    # plt.savefig(savepath)
+def contexts_by_moment(contexts, moments, savepath=None):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    contexts = np.array(contexts).reshape(-1, 3)
+    cax = ax.scatter(contexts[:, 0], contexts[:, 1], contexts[:, 2],
+                     c=moments[:len(contexts)])
+    fig.colorbar(cax)
+
+    plt.tick_params(axis='both', which='both', bottom='off', top='off', labelbottom='off',
+                    right='off', left='off', labelleft='off')
+    plt.tight_layout()
+    plt.show()
+
+    if savepath is not None:
+        plt.savefig(savepath)
