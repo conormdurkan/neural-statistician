@@ -73,7 +73,7 @@ class PrePool(nn.Module):
     def forward(self, x):
         # reshape and initial affine
         e = x.view(-1, self.n_features)
-        # print(e)
+
         e = self.fc_initial(e)
         e = self.bn_initial(e)
         e = self.nonlinearity(e)
@@ -150,15 +150,18 @@ class StatisticNetwork(nn.Module):
         self.postpool = PostPool(self.n_hidden, self.hidden_dim,
                                  self.c_dim, self.nonlinearity)
 
-    def forward(self, x):
+    def forward(self, x, summarize=False):
         e = self.prepool(x)
-        e = self.pool(e)
+        e = self.pool(e, summarize=summarize)
         e = self.postpool(e)
         return e
 
-    def pool(self, e):
-        e = e.view(self.batch_size, self.sample_size, self.hidden_dim)
-        e = e.mean(1).view(self.batch_size, self.hidden_dim)
+    def pool(self, e, summarize):
+        if summarize:
+            e = e.view(1, -1, self.hidden_dim)
+        else:
+            e = e.view(self.batch_size, self.sample_size, self.hidden_dim)
+        e = e.mean(1).view(-1, self.hidden_dim)
         return e
 
 

@@ -1,5 +1,6 @@
 import torch
 
+from itertools import combinations
 from spatialnets import (StatisticNetwork, InferenceNetwork,
                          LatentDecoder, ObservationDecoder)
 from torch.autograd import Variable
@@ -183,7 +184,40 @@ class Statistician(nn.Module):
         }, save_path)
 
     def summarize(self, dataset, output_size=6):
-        pass
+        # cast to torch Cuda Variable and reshape
+        dataset = Variable(dataset.cuda()).view(1, self.sample_size, self.n_features)
+        # get approximate posterior over full dataset
+        c_mean_full, c_logvar_full = self.statistic_network(dataset, summarize=True)
+
+        # iteratively discard until dataset is of required size
+        while dataset.size(1) != output_size:
+            kl_divergences = []
+            # need KL divergence between full approximate posterior and all
+            # subsets of given size
+            subset_indices = combinations(range(dataset.size(1)), dataset.size(1) - 1)
+
+            for subset_index in subset_indices:
+                # pull out subset, numpy indexing will make this much easier
+                ix = Variable(torch.LongTensor(subset_index).cuda())
+                subset = dataset.index_select(1, ix)
+
+                # calculate approximate posterior over subset
+                c_mean, c_logvar = self.statistic_network(subset, summarize=True)
+                kl = kl_diagnormal_diagnormal(c_mean_full, c_logvar_full, c_mean, c_logvar)
+                kl_divergences.append(kl.data[0])
+
+            # determine which sample we want to remove
+            worst_ix = kl_divergences.index(max(kl_divergences))
+
+            # determine which samples to keep
+            to_keep = list(range(dataset.size(1)))
+            to_keep.remove(worst_ix)
+            to_keep = Variable(torch.LongTensor(to_keep).cuda())
+
+            # keep only desired samples
+            dataset = dataset.index_select(1, to_keep)
+
+        return dataset
 
     @staticmethod
     def reparameterize_gaussian(mean, logvar):

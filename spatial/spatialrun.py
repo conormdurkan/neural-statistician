@@ -16,7 +16,7 @@ from tqdm import tqdm
 host = socket.gethostname()
 if host == 'coldingham':
     output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns-pytorch/spatial' \
-                        '/output/'
+                 '/output/'
 else:
     output_dir = '/disk/scratch/conor/output/ns/ns-pytorch/spatial/'
 
@@ -106,7 +106,7 @@ def run(model, optimizer, loaders, datasets):
             model.save(optimizer, save_path)
 
     # summarize test dataset at end of training
-        model.summarize(test_dataset, output_size=6)
+    summary = model.summarize(test_dataset, output_size=6)
 
 
 def main():

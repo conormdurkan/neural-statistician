@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 
-from matplotlib import pyplot as plt
 from torch.utils import data
 
 
