@@ -27,7 +27,7 @@ def kl_diagnormal_stdnormal(mean, logvar):
 
 
 def kl_diagnormal_diagnormal(q_mean, q_logvar, p_mean, p_logvar):
-    # Ensure broadcasting works
+    # Ensure correct shapes since no numpy broadcasting yet
     p_mean = p_mean.expand_as(q_mean)
     p_logvar = p_logvar.expand_as(q_logvar)
 

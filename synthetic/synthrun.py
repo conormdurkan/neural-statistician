@@ -11,6 +11,8 @@ from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
 
+# find out where we are
+# you're gonna wanna change this
 host = socket.gethostname()
 if host == 'coldingham':
     output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns-pytorch/synthetic' \
@@ -18,7 +20,7 @@ if host == 'coldingham':
 else:
     output_dir = '/disk/scratch/conor/output/ns/ns-pytorch/synthetic/'
 
-
+# command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
 parser.add_argument('--n-datasets', type=int, default=10000, metavar='N',
                     help='number of synthetic datasets in collection (default: 10000)')
@@ -47,12 +49,13 @@ parser.add_argument('--z-dim', type=int, default=32,
                     help='dimension of z variables (default: 32)')
 parser.add_argument('--n-hidden', type=int, default=3,
                     help='number of hidden layers in modules outside statistic network '
-                         '(default: 10000)')
+                         '(default: 3)')
 parser.add_argument('--hidden-dim', type=int, default=128,
                     help='dimension of hidden layers in modules outside statistic network '
-                         '(default: 10000)')
+                         '(default: 128)')
 parser.add_argument('--print-vars', type=bool, default=False,
-                    help='number of synthetic datasets in collection (default: False)')
+                    help='whether to print all learnable parameters for sanity check '
+                         '(default: False)')
 parser.add_argument('--learning-rate', type=float, default=1e-3,
                     help='learning rate for Adam optimizer (default: 1e-3).')
 parser.add_argument('--epochs', type=int, default=50,
@@ -63,8 +66,12 @@ parser.add_argument('--viz-interval', type=int, default=-1,
 parser.add_argument('--save_interval', type=int, default=-1,
                     help='number of epochs between saving model '
                          '(default: -1 (save on last epoch))')
+parser.add_argument('--clip-gradients', type=bool, default=True,
+                    help='whether to clip gradients to range [-0.5, 0.5] '
+                         '(default: True)')
 args = parser.parse_args()
 
+# experiment start time
 time_stamp = time.strftime("%d-%m-%Y-%H:%M:%S")
 
 
@@ -84,10 +91,10 @@ def run(model, optimizer, loaders, datasets):
         model.train()
         running_vlb = 0
         for batch in train_loader:
-            vlb = model.step(batch, alpha, optimizer, clip_gradients=True)
+            vlb = model.step(batch, alpha, optimizer, clip_gradients=args.clip_gradients)
             running_vlb += vlb
 
-        running_vlb /= (len(train_dataset) // 16)
+        running_vlb /= (len(train_dataset) // args.batch_size)
         s = "VLB: {:.3f}".format(running_vlb)
         tbar.set_description(s)
 
@@ -103,7 +110,7 @@ def run(model, optimizer, loaders, datasets):
                 context_means, _ = model.statistic_network(inputs)
                 contexts.append(context_means.data.cpu().numpy())
 
-            # show clusters
+            # show coloured by distribution
             path = output_dir + '/figures/' + time_stamp + '-{}.pdf'.format(epoch + 1)
             scatter_contexts(contexts, test_dataset.data['labels'],
                              test_dataset.data['distributions'], savepath=path)
@@ -155,10 +162,10 @@ def main():
     datasets = (train_dataset, test_dataset)
 
     train_loader = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size,
-                                   shuffle=True, num_workers=4, drop_last=True)
+                                   shuffle=True, num_workers=0, drop_last=True)
 
     test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size,
-                                  shuffle=False, num_workers=4, drop_last=True)
+                                  shuffle=False, num_workers=0, drop_last=True)
     loaders = (train_loader, test_loader)
 
     model_kwargs = {

@@ -127,11 +127,13 @@ class PrePool(nn.Module):
 
         # modules
         self.fc = nn.Linear(self.n_features, self.hidden_dim)
+        self.bn = nn.BatchNorm1d(self.hidden_dim)
 
     def forward(self, h):
         # reshape and affine
         e = h.view(-1, self.n_features)
         e = self.fc(e)
+        e = self.bn(e)
         e = self.nonlinearity(e)
 
         return e
@@ -152,17 +154,18 @@ class PostPool(nn.Module):
         self.nonlinearity = nonlinearity
 
         # modules
-        self.fc_block = nn.ModuleList([
-            nn.Linear(in_features=self.hidden_dim, out_features=self.hidden_dim),
-            nn.Linear(in_features=self.hidden_dim, out_features=self.hidden_dim)
-        ])
+        self.fc_layers = nn.ModuleList([nn.Linear(self.hidden_dim, self.hidden_dim),
+                                        nn.Linear(self.hidden_dim, self.hidden_dim)])
+        self.bn_layers = nn.ModuleList([nn.BatchNorm1d(self.hidden_dim),
+                                        nn.BatchNorm1d(self.hidden_dim)])
 
         self.fc_params = nn.Linear(self.hidden_dim, 2 * self.c_dim)
         self.bn_params = nn.BatchNorm1d(1, eps=1e-3, momentum=1e-2)
 
     def forward(self, e):
-        for layer in self.fc_block:
-            e = layer(e)
+        for fc, bn in zip(self.fc_layers, self.bn_layers):
+            e = fc(e)
+            e = bn(e)
             e = self.nonlinearity(e)
 
         # affine transformation to parameters
@@ -239,10 +242,8 @@ class InferenceNetwork(nn.Module):
         self.fc_c = nn.Linear(self.c_dim, self.hidden_dim)
         self.fc_z = nn.Linear(self.z_dim, self.hidden_dim)
 
-        # self.fc_block = nn.ModuleList([nn.Linear(self.hidden_dim, self.hidden_dim)
-        #                                for _ in range(self.n_hidden)])
         self.fc_res_block = FCResBlock(dim=self.hidden_dim, n=self.n_hidden,
-                                       nonlinearity=self.nonlinearity)
+                                       nonlinearity=self.nonlinearity, batch_norm=True)
 
         self.fc_params = nn.Linear(self.hidden_dim, 2 * self.z_dim)
         self.bn_params = nn.BatchNorm1d(1, eps=1e-3, momentum=1e-2)
@@ -313,7 +314,7 @@ class LatentDecoder(nn.Module):
         self.fc_z = nn.Linear(self.z_dim, self.hidden_dim)
 
         self.fc_res_block = FCResBlock(dim=self.hidden_dim, n=self.n_hidden,
-                                       nonlinearity=self.nonlinearity)
+                                       nonlinearity=self.nonlinearity, batch_norm=True)
 
         self.fc_params = nn.Linear(self.hidden_dim, 2 * self.z_dim)
         self.bn_params = nn.BatchNorm1d(1, eps=1e-3, momentum=1e-2)
@@ -377,7 +378,7 @@ class ObservationDecoder(nn.Module):
 
         self.use_batch_norm = use_batch_norm
 
-        # learnable log variance parameter
+        # shared learnable log variance parameter
         self.logvar = nn.Parameter(torch.randn(1, 3, 64, 64).cuda())
 
         # modules
@@ -422,7 +423,6 @@ class ObservationDecoder(nn.Module):
         ])
 
         self.conv_mean = nn.Conv2d(32, 3, kernel_size=1)
-        # self.conv_logvar = nn.Conv2d(32, 3, kernel_size=1)
 
     def forward(self, zs, c):
         ezs = self.fc_zs(zs)
