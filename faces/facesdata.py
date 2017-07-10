@@ -1,15 +1,22 @@
 import numpy as np
 import os
+import socket
 import time
 
 from skimage.io import imread
 from torch.utils import data
 
+host = socket.gethostname()
+if host == 'coldingham':
+    root = '/home/conor/Dropbox/msc/thesis/'
+else:
+    root = '/disk/scratch/conor/'
+
 
 class YouTubeFacesSetsDataset(data.Dataset):
     def __init__(self, split='train', n_frames_per_set=5):
         self.n_frames_per_set = n_frames_per_set
-        self.path = '/home/conor/Dropbox/msc/thesis/data/youtube-faces/64'
+        self.path = root + 'data/youtube-faces/64'
         splits = {
             'test': slice(100),
             'valid': slice(100, 200),

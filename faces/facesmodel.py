@@ -17,7 +17,7 @@ class Statistician(nn.Module):
                  nonlinearity=F.relu, print_vars=False):
         """
 
-        :param batch_size: 
+        :param batch_size:
         :param sample_size: 
         :param n_features: 
         :param c_dim: 

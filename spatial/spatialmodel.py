@@ -184,6 +184,10 @@ class Statistician(nn.Module):
         }, save_path)
 
     def summarize(self, dataset, output_size=6):
+        """
+        There's some nasty indexing going on here because pytorch doesn't
+        have numpy indexing yet. This will be fixed soon.
+        """
         # cast to torch Cuda Variable and reshape
         dataset = Variable(dataset.cuda()).view(1, self.sample_size, self.n_features)
         # get approximate posterior over full dataset
@@ -194,7 +198,7 @@ class Statistician(nn.Module):
             kl_divergences = []
             # need KL divergence between full approximate posterior and all
             # subsets of given size
-            subset_indices = combinations(range(dataset.size(1)), dataset.size(1) - 1)
+            subset_indices = list(combinations(range(dataset.size(1)), dataset.size(1) - 1))
 
             for subset_index in subset_indices:
                 # pull out subset, numpy indexing will make this much easier
@@ -207,16 +211,16 @@ class Statistician(nn.Module):
                 kl_divergences.append(kl.data[0])
 
             # determine which sample we want to remove
-            worst_ix = kl_divergences.index(max(kl_divergences))
+            best_index = kl_divergences.index(min(kl_divergences))
 
             # determine which samples to keep
-            to_keep = list(range(dataset.size(1)))
-            to_keep.remove(worst_ix)
+            to_keep = subset_indices[best_index]
             to_keep = Variable(torch.LongTensor(to_keep).cuda())
 
             # keep only desired samples
             dataset = dataset.index_select(1, to_keep)
 
+        # return pruned dataset
         return dataset
 
     @staticmethod

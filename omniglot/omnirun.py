@@ -91,7 +91,7 @@ def main():
     restore = False
     if restore:
         # assume we're restoring just for visualization purposes
-        path = 'home/conor/Dropbox/msc/thesis/ns/ns-pytorch/spatial/' \
+        path = 'home/conor/Dropbox/msc/thesis/ns/ns/spatial/' \
                'output/checkpoints/300.m'
         state = torch.load(path)
         model.load_state_dict(state['model_state'])

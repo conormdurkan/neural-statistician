@@ -15,10 +15,10 @@ from tqdm import tqdm
 # you're gonna wanna change this
 host = socket.gethostname()
 if host == 'coldingham':
-    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns-pytorch/spatial' \
+    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns/spatial' \
                  '/output/'
 else:
-    output_dir = '/disk/scratch/conor/output/ns/ns-pytorch/spatial/'
+    output_dir = '/disk/scratch/conor/output/ns/ns/spatial/'
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
@@ -107,6 +107,7 @@ def run(model, optimizer, loaders, datasets):
 
     # summarize test dataset at end of training
     summary = model.summarize(test_dataset, output_size=6)
+    # TODO: plot summary
 
 
 def main():

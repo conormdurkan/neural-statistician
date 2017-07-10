@@ -15,10 +15,10 @@ from tqdm import tqdm
 # you're gonna wanna change this
 host = socket.gethostname()
 if host == 'coldingham':
-    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns-pytorch/synthetic' \
+    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns/synthetic' \
                         '/output/'
 else:
-    output_dir = '/disk/scratch/conor/output/ns/ns-pytorch/synthetic/'
+    output_dir = '/disk/scratch/conor/output/ns/ns/synthetic/'
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
