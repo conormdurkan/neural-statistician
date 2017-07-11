@@ -1,5 +1,5 @@
 import argparse
-import socket
+import os
 import time
 
 from spatialdata import SpatialMNISTDataset
@@ -11,17 +11,16 @@ from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
 
-# find out where we are
-# you're gonna wanna change this
-host = socket.gethostname()
-if host == 'coldingham':
-    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns/spatial' \
-                 '/output/'
-else:
-    output_dir = '/disk/scratch/conor/output/ns/ns/spatial/'
-
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
+
+# required
+parser.add_argument('--data-dir', required=True, type=str, default=None,
+                    help='location of formatted Omniglot data')
+parser.add_argument('--output-dir', required=True, type=str, default=None,
+                    help='output directory for checkpoints and figures')
+
+# optional
 parser.add_argument('--batch-size', type=int, default=64,
                     help='batch size (of datasets) for training (default: 64)')
 parser.add_argument('--c-dim', type=int, default=64,
@@ -58,6 +57,9 @@ parser.add_argument('--clip-gradients', type=bool, default=True,
                     help='whether to clip gradients to range [-0.5, 0.5] '
                          '(default: True)')
 args = parser.parse_args()
+assert args.output_dir is not None
+os.makedirs(os.path.join(args.output_dir, 'checkpoints'), exist_ok=True)
+os.makedirs(os.path.join(args.output_dir, 'figures'), exist_ok=True)
 
 # experiment start time
 time_stamp = time.strftime("%d-%m-%Y-%H:%M:%S")
@@ -67,21 +69,23 @@ def run(model, optimizer, loaders, datasets):
     train_dataset, test_dataset = datasets
     train_loader, test_loader = loaders
     test_batch = next(iter(test_loader))
-    test_dataset = test_batch[0][0]
 
     viz_interval = args.epochs if args.viz_interval == -1 else args.viz_interval
     save_interval = args.epochs if args.save_interval == -1 else args.save_interval
 
+    # initial weighting for loss terms is (1 + alpha)
     alpha = 1
-    tbar = tqdm(range(args.epochs))
+
     # main training loop
+    tbar = tqdm(range(args.epochs))
     for epoch in tbar:
 
         # train step
         model.train()
         running_vlb = 0
         for batch in train_loader:
-            vlb = model.step(batch, alpha, optimizer, clip_gradients=args.clip_gradients)
+            inputs = Variable(batch[0].cuda())
+            vlb = model.step(inputs, alpha, optimizer, clip_gradients=args.clip_gradients)
             running_vlb += vlb
 
         running_vlb /= (len(train_dataset) // args.batch_size)
@@ -91,28 +95,40 @@ def run(model, optimizer, loaders, datasets):
         # reduce weight
         alpha *= 0.5
 
-        # show reconstructions of test batch at intervals
+        # show samples conditioned on test batch at intervals
         model.eval()
         if (epoch + 1) % viz_interval == 0:
-            inputs = Variable(test_batch[0].cuda())
-            outputs = model(inputs)
-            reconstructions = outputs[-1][1]
-            grid(inputs, reconstructions.view(args.batch_size, 50, 2), ncols=8)
+            inputs = Variable(test_batch[0].cuda(), volatile=True)
+            samples = model.sample_conditioned(inputs)
+            filename = time_stamp + '-{}.png'.format(epoch + 1)
+            save_path = os.path.join(args.output_dir, 'figures/' + filename)
+            grid(inputs, samples, save_path=save_path, ncols=10)
 
         # checkpoint model at intervals
         if (epoch + 1) % save_interval == 0:
-            save_path = output_dir + '/checkpoints/' + time_stamp \
-                        + '-{}.m'.format(epoch + 1)
+            filename = time_stamp + '-{}.m'.format(epoch + 1)
+            save_path = os.path.join(args.output_dir, 'checkpoints/' + filename)
             model.save(optimizer, save_path)
 
-    # summarize test dataset at end of training
-    summary = model.summarize(test_dataset, output_size=6)
-    # TODO: plot summary
+    # we're already in eval mode, but let's be explicit
+    model.eval()
+    # summarize test batch at end of training
+    n = 10 # number of datasets to summarize
+    inputs = Variable(test_batch[0].cuda(), volatile=True)
+    print("Summarizing...")
+    summaries = model.summarize_batch(inputs[:n], output_size=6)
+    print("Summary complete!")
+
+    # plot summarized datasets
+    samples = model.sample_conditioned(inputs)
+    filename = time_stamp + '-summary.png'
+    save_path = os.path.join(args.output_dir, 'figures/' + filename)
+    grid(inputs, samples, summaries=summaries, save_path=save_path, ncols=n)
 
 
 def main():
-    train_dataset = SpatialMNISTDataset(split='train')
-    test_dataset = SpatialMNISTDataset(split='test')
+    train_dataset = SpatialMNISTDataset(data_dir=args.data_dir, split='train')
+    test_dataset = SpatialMNISTDataset(data_dir=args.data_dir, split='test')
     datasets = (train_dataset, test_dataset)
 
     train_loader = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size,

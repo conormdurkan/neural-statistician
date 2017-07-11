@@ -30,7 +30,6 @@ def scatter_contexts(contexts, labels, distributions, savepath=None):
                     right='off', left='off', labelleft='off')
     plt.legend(loc='upper left')
     plt.tight_layout()
-    plt.show()
 
     if savepath is not None:
         plt.savefig(savepath)
@@ -48,7 +47,6 @@ def contexts_by_moment(contexts, moments, savepath=None):
     plt.tick_params(axis='both', which='both', bottom='off', top='off', labelbottom='off',
                     right='off', left='off', labelleft='off')
     plt.tight_layout()
-    plt.show()
 
     if savepath is not None:
         plt.savefig(savepath)

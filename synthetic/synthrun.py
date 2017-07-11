@@ -1,5 +1,5 @@
 import argparse
-import socket
+import os
 import time
 
 from synthdata import SyntheticSetsDataset
@@ -11,17 +11,14 @@ from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
 
-# find out where we are
-# you're gonna wanna change this
-host = socket.gethostname()
-if host == 'coldingham':
-    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns/synthetic' \
-                        '/output/'
-else:
-    output_dir = '/disk/scratch/conor/output/ns/ns/synthetic/'
-
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
+
+# required
+parser.add_argument('--output-dir', required=True, type=str, default=None,
+                    help='output directory for checkpoints and figures')
+
+# optional
 parser.add_argument('--n-datasets', type=int, default=10000, metavar='N',
                     help='number of synthetic datasets in collection (default: 10000)')
 parser.add_argument('--batch-size', type=int, default=16,
@@ -70,6 +67,9 @@ parser.add_argument('--clip-gradients', type=bool, default=True,
                     help='whether to clip gradients to range [-0.5, 0.5] '
                          '(default: True)')
 args = parser.parse_args()
+assert args.output_dir is not None
+os.makedirs(os.path.join(args.output_dir, 'checkpoints'), exist_ok=True)
+os.makedirs(os.path.join(args.output_dir, 'figures'), exist_ok=True)
 
 # experiment start time
 time_stamp = time.strftime("%d-%m-%Y-%H:%M:%S")
@@ -102,7 +102,7 @@ def run(model, optimizer, loaders, datasets):
         alpha *= 0.5
 
         # show test set in context space at intervals
-        if (epoch + 1) % viz_interval == 0:
+        if (epoch + 1) % 1 == 0:
             model.eval()
             contexts = []
             for batch in test_loader:
@@ -111,25 +111,25 @@ def run(model, optimizer, loaders, datasets):
                 contexts.append(context_means.data.cpu().numpy())
 
             # show coloured by distribution
-            path = output_dir + '/figures/' + time_stamp + '-{}.pdf'.format(epoch + 1)
+            path = args.output_dir + '/figures/' + time_stamp + '-{}.pdf'.format(epoch + 1)
             scatter_contexts(contexts, test_dataset.data['labels'],
                              test_dataset.data['distributions'], savepath=path)
 
             # show coloured by mean
-            path = output_dir + '/figures/' + time_stamp \
+            path = args.output_dir + '/figures/' + time_stamp \
                    + '-{}-mean.pdf'.format(epoch + 1)
             contexts_by_moment(contexts, moments=test_dataset.data['means'],
                                savepath=path)
 
             # show coloured by variance
-            path = output_dir + '/figures/' + time_stamp \
+            path = args.output_dir + '/figures/' + time_stamp \
                    + '-{}-variance.pdf'.format(epoch + 1)
             contexts_by_moment(contexts, moments=test_dataset.data['variances'],
                                savepath=path)
 
         # checkpoint model at intervals
         if (epoch + 1) % save_interval == 0:
-            save_path = output_dir + '/checkpoints/' + time_stamp \
+            save_path = args.output_dir + '/checkpoints/' + time_stamp \
                         + '-{}.m'.format(epoch + 1)
             model.save(optimizer, save_path)
 

@@ -1,3 +1,4 @@
+import argparse
 import gzip
 import numpy as np
 import os
@@ -5,6 +6,11 @@ import pickle
 
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--data-dir', require=True, type=str, default=None)
+args = parser.parse_args()
+assert (args.data_dir is not None) and (os.path.isdir(args.data_dir))
 
 
 # CREATE SPATIAL MNIST
@@ -34,14 +40,13 @@ def load_labels(path):
 
 
 def load_data():
-
     train_images_gz = 'train-images-idx3-ubyte.gz'
     train_labels_gz = 'train-labels-idx1-ubyte.gz'
 
     test_images_gz = 't10k-images-idx3-ubyte.gz'
     test_labels_gz = 't10k-labels-idx1-ubyte.gz'
 
-    data_dir = '/home/conor/Dropbox/msc/thesis/data/mnist'
+    data_dir = args.data_dir
 
     train_images = load_images(os.path.join(data_dir, train_images_gz))
     test_images = load_images(os.path.join(data_dir, test_images_gz))
@@ -85,11 +90,11 @@ def create_spatial(images, labels, sample_size=50, plot=False):
             axs[i].set_aspect('equal', adjustable='box')
         plt.show()
 
-    spatial_path = '/home/conor/Dropbox/msc/thesis/data/mnist/spatial/spatial.pkl'
+    spatial_path = os.path.join(args.data_dir, 'spatial.pkl')
     with open(spatial_path, 'wb') as file:
         pickle.dump(spatial, file)
 
-    labels_path = '/home/conor/Dropbox/msc/thesis/data/mnist/spatial/labels.pkl'
+    labels_path = os.path.join(args.data_dir, 'labels.pkl')
     with open(labels_path, 'wb') as file:
         pickle.dump(labels, file)
 

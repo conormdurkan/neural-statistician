@@ -1,5 +1,5 @@
 import argparse
-import socket
+import os
 import time
 
 from facesdata import YouTubeFacesSetsDataset
@@ -10,17 +10,16 @@ from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
 
-# find out where we are
-# you're gonna wanna change this
-host = socket.gethostname()
-if host == 'coldingham':
-    output_dir = '/home/conor/Dropbox/msc/thesis/ns/ns/faces' \
-                 '/output/'
-else:
-    output_dir = '/disk/scratch/conor/output/ns/ns/faces/'
-
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
+
+# required
+parser.add_argument('--data-dir', required=True, type=str, default=None,
+                    help='location of formatted Omniglot data')
+parser.add_argument('--output-dir', required=True, type=str, default=None,
+                    help='output directory for checkpoints and figures')
+
+# optional
 parser.add_argument('--batch-size', type=int, default=64,
                     help='batch size (of datasets) for training (default: 64)')
 parser.add_argument('--sample-size', type=int, default=5,
@@ -59,6 +58,9 @@ parser.add_argument('--clip-gradients', type=bool, default=True,
                     help='whether to clip gradients to range [-0.5, 0.5] '
                          '(default: True)')
 args = parser.parse_args()
+assert (args.data_dir is not None) and (args.output_dir is not None)
+os.makedirs(os.path.join(args.output_dir, 'checkpoints'), exist_ok=True)
+os.makedirs(os.path.join(args.output_dir, 'figures'), exist_ok=True)
 
 # experiment start time
 time_stamp = time.strftime("%d-%m-%Y-%H:%M:%S")
@@ -96,22 +98,24 @@ def run(model, optimizer, loaders, datasets):
         # evaluate on test set by sampling conditioned on contexts
         model.eval()
         if (epoch + 1) % viz_interval == 0:
-            save_path = output_dir + 'figures/' + time_stamp + \
-                        'grid-{}.png'.format(epoch + 1)
+            filename = time_stamp + '-grid-{}.png'.format(epoch + 1)
+            save_path = os.path.join(args.output_dir, 'figures/' + filename)
             inputs, samples = model.sample_conditioned(test_batch)
             save_test_grid(inputs, samples, save_path)
 
         # checkpoint model at intervals
         if (epoch + 1) % save_interval == 0:
-            save_path = output_dir + '/checkpoints/' + time_stamp \
-                        + '-{}.m'.format(epoch + 1)
+            filename = time_stamp + '-{}.m'.format(epoch + 1)
+            save_path = os.path.join(args.output_dir, '/checkpoints/' + filename)
             model.save(optimizer, save_path)
 
 
 def main():
     # create datasets
-    train_dataset = YouTubeFacesSetsDataset(split='train')
-    test_dataset = YouTubeFacesSetsDataset(split='valid')
+    train_dataset = YouTubeFacesSetsDataset(data_dir=args.data_dir, split='train',
+                                            n_frames_per_set=5)
+    test_dataset = YouTubeFacesSetsDataset(data_dir=args.data_dir, split='valid',
+                                           n_frames_per_set=5)
     datasets = (train_dataset, test_dataset)
 
     # create loaders

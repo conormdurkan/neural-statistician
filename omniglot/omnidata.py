@@ -1,14 +1,73 @@
+import gzip
 import numpy as np
+import os
 import pickle
+import torch
 
 from skimage.transform import rotate
 from torch.utils import data
 
 
+def load_mnist(data_dir):
+
+    def load_images(path):
+        with gzip.open(path) as bytestream:
+            # read meta information
+            header_buffer = bytestream.read(16)
+            header = np.frombuffer(header_buffer, dtype='>i4')
+            magic, n, x, y = header
+            # read data
+            buffer = bytestream.read(x * y * n)
+            data = np.frombuffer(buffer, dtype='>u1').astype(np.float32)
+            data = data.reshape(n, x * y)
+        return data
+
+    def load_labels(path):
+        with gzip.open(path) as bytestream:
+            # read meta information
+            header_buffer = bytestream.read(8)
+            header = np.frombuffer(header_buffer, dtype='>i4')
+            magic, n = header
+            # read data
+            buffer = bytestream.read(n)
+            data = np.frombuffer(buffer, dtype=np.uint8).astype(np.int32)
+        return data
+
+    train_images_gz = 'train-images-idx3-ubyte.gz'
+    train_labels_gz = 'train-labels-idx1-ubyte.gz'
+
+    test_images_gz = 't10k-images-idx3-ubyte.gz'
+    test_labels_gz = 't10k-labels-idx1-ubyte.gz'
+
+    train_images = load_images(os.path.join(data_dir, train_images_gz))
+    test_images = load_images(os.path.join(data_dir, test_images_gz))
+    images = np.vstack((train_images, test_images)) / 255
+
+    train_labels = load_labels(os.path.join(data_dir, train_labels_gz))
+    test_labels = load_labels(os.path.join(data_dir, test_labels_gz))
+    labels = np.hstack((train_labels, test_labels))
+
+    n = len(labels)
+    one_hot = np.zeros((n, 10))
+    one_hot[range(n), labels] = 1
+    labels = one_hot
+
+    return images, labels
+
+
+def load_mnist_test_batch(data_dir, batch_size):
+    images, one_hot_labels = load_mnist(data_dir=data_dir)
+    labels = np.argmax(one_hot_labels, axis=1)
+    ixs = [np.random.choice(np.where(labels == i)[0], size=5, replace=False)
+           for i in range(10)]
+    batch = np.array([images[ix] for ix in ixs])
+    return torch.from_numpy(batch).repeat((batch_size // 10) + 1, 1, 1)[:batch_size]
+
+
 class OmniglotSetsDataset(data.Dataset):
-    def __init__(self, sample_size=5, split='train', augment=False):
+    def __init__(self, data_dir, sample_size=5, split='train', augment=False):
         self.sample_size = sample_size
-        path = '/home/conor/Dropbox/msc/thesis/data/omniglot/train_val_test_split.pkl'
+        path = os.path.join(data_dir, 'train_val_test_split.pkl')
         with open(path, 'rb') as file:
             splits = pickle.load(file)
         if split == 'train':
@@ -29,7 +88,6 @@ class OmniglotSetsDataset(data.Dataset):
             sets, set_labels = None, None
         sets = sets.reshape(-1, 5, 1, 28, 28)
 
-        # assert len(sets) == len(set_labels)
         self.n = len(sets)
         self.data = {
             'inputs': sets,

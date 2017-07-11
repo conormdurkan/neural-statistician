@@ -1,21 +1,22 @@
 import numpy as np
+import os
 import pickle
 
 from torch.utils import data
 
 
 class SpatialMNISTDataset(data.Dataset):
-    def __init__(self, split='train'):
+    def __init__(self, data_dir, split='train'):
         splits = {
             'train': slice(0, 60000),
             'test': slice(60000, 70000)
         }
 
-        spatial_path = '/home/conor/Dropbox/msc/thesis/data/mnist/spatial/spatial.pkl'
+        spatial_path = os.path.join(data_dir, 'spatial.pkl')
         with open(spatial_path, 'rb') as file:
             spatial = pickle.load(file)
 
-        labels_path = '/home/conor/Dropbox/msc/thesis/data/mnist/spatial/labels.pkl'
+        labels_path = os.path.join(data_dir, 'labels.pkl')
         with open(labels_path, 'rb') as file:
             labels = pickle.load(file)
 

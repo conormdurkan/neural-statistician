@@ -6,6 +6,7 @@ from spatialnets import (StatisticNetwork, InferenceNetwork,
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F, init
+from tqdm import tqdm
 from utils import (kl_diagnormal_diagnormal, kl_diagnormal_stdnormal,
                    gaussian_log_likelihood)
 
@@ -87,7 +88,10 @@ class Statistician(nn.Module):
     def forward(self, x):
         # statistic network
         c_mean, c_logvar = self.statistic_network(x)
-        c = self.reparameterize_gaussian(c_mean, c_logvar)
+        if self.training:
+            c = self.reparameterize_gaussian(c_mean, c_logvar)
+        else:
+            c = c_mean
 
         # inference networks
         qz_samples = []
@@ -158,10 +162,9 @@ class Statistician(nn.Module):
 
         return loss, vlb
 
-    def step(self, batch, alpha, optimizer, clip_gradients=True):
+    def step(self, inputs, alpha, optimizer, clip_gradients=True):
         assert self.training is True
 
-        inputs = Variable(batch[0].cuda())
         outputs = self.forward(inputs)
         loss, vlb = self.loss(outputs, weight=(alpha + 1))
 
@@ -183,13 +186,29 @@ class Statistician(nn.Module):
             'optimizer_state': optimizer.state_dict()
         }, save_path)
 
+    def sample_conditioned(self, inputs):
+        assert self.training is False
+
+        outputs = self.forward(inputs)
+        samples = outputs[-1][1].view(self.batch_size, 50, 2)
+
+        return samples
+
+    def summarize_batch(self, inputs, output_size=6):
+        summaries = []
+        for dataset in tqdm(inputs):
+            summary = self.summarize(dataset, output_size=output_size)
+            summaries.append(summary)
+        summaries = torch.cat(summaries)
+        return summaries
+
     def summarize(self, dataset, output_size=6):
         """
         There's some nasty indexing going on here because pytorch doesn't
         have numpy indexing yet. This will be fixed soon.
         """
         # cast to torch Cuda Variable and reshape
-        dataset = Variable(dataset.cuda()).view(1, self.sample_size, self.n_features)
+        dataset = dataset.view(1, self.sample_size, self.n_features)
         # get approximate posterior over full dataset
         c_mean_full, c_logvar_full = self.statistic_network(dataset, summarize=True)
 

@@ -60,10 +60,9 @@ class Conv2d3x3(nn.Module):
 
 # SHARED CONVOLUTIONAL ENCODER
 class SharedConvolutionalEncoder(nn.Module):
-    def __init__(self, nonlinearity, use_batch_norm=True):
+    def __init__(self, nonlinearity):
         super(SharedConvolutionalEncoder, self).__init__()
         self.nonlinearity = nonlinearity
-        self.use_batch_norm = use_batch_norm
 
         self.conv_layers = nn.ModuleList([
             Conv2d3x3(in_channels=3, out_channels=32),
@@ -103,8 +102,7 @@ class SharedConvolutionalEncoder(nn.Module):
         h = x.view(-1, 3, 64, 64)
         for conv, bn in zip(self.conv_layers, self.bn_layers):
             h = conv(h)
-            if self.use_batch_norm:
-                h = bn(h)
+            h = bn(h)
             h = self.nonlinearity(h)
         return h
 
@@ -361,7 +359,7 @@ class ObservationDecoder(nn.Module):
     """
     def __init__(self, batch_size, sample_size, n_features,
                  n_hidden, hidden_dim, c_dim, n_stochastic, z_dim,
-                 nonlinearity, use_batch_norm=True):
+                 nonlinearity):
         super(ObservationDecoder, self).__init__()
         self.batch_size = batch_size
         self.sample_size = sample_size
@@ -375,8 +373,6 @@ class ObservationDecoder(nn.Module):
         self.z_dim = z_dim
 
         self.nonlinearity = nonlinearity
-
-        self.use_batch_norm = use_batch_norm
 
         # shared learnable log variance parameter
         self.logvar = nn.Parameter(torch.randn(1, 3, 64, 64).cuda())
@@ -442,8 +438,7 @@ class ObservationDecoder(nn.Module):
 
         for conv, bn in zip(self.conv_layers, self.bn_layers):
             e = conv(e)
-            if self.use_batch_norm:
-                e = bn(e)
+            e = bn(e)
             e = self.nonlinearity(e)
 
         mean = self.conv_mean(e)
