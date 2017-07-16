@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import time
 
 from synthdata import SyntheticSetsDataset
@@ -10,6 +11,9 @@ from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
+
+# put parent directory in path for utils
+sys.path.append(os.path.abspath('..'))
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')

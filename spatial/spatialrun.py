@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import time
 
 from spatialdata import SpatialMNISTDataset
@@ -10,6 +11,9 @@ from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
+
+# put parent directory in path for utils
+sys.path.append(os.path.abspath('..'))
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
@@ -45,8 +49,8 @@ parser.add_argument('--print-vars', type=bool, default=False,
                          '(default: False)')
 parser.add_argument('--learning-rate', type=float, default=1e-3,
                     help='learning rate for Adam optimizer (default: 1e-3).')
-parser.add_argument('--epochs', type=int, default=50,
-                    help='number of epochs for training (default: 50)')
+parser.add_argument('--epochs', type=int, default=100,
+                    help='number of epochs for training (default: 100)')
 parser.add_argument('--viz-interval', type=int, default=-1,
                     help='number of epochs between visualizing context space '
                          '(default: -1 (only visualize last epoch))')
@@ -113,7 +117,7 @@ def run(model, optimizer, loaders, datasets):
     # we're already in eval mode, but let's be explicit
     model.eval()
     # summarize test batch at end of training
-    n = 10 # number of datasets to summarize
+    n = 10  # number of datasets to summarize
     inputs = Variable(test_batch[0].cuda(), volatile=True)
     print("Summarizing...")
     summaries = model.summarize_batch(inputs[:n], output_size=6)

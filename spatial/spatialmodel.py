@@ -88,10 +88,7 @@ class Statistician(nn.Module):
     def forward(self, x):
         # statistic network
         c_mean, c_logvar = self.statistic_network(x)
-        if self.training:
-            c = self.reparameterize_gaussian(c_mean, c_logvar)
-        else:
-            c = c_mean
+        c = self.reparameterize_gaussian(c_mean, c_logvar)
 
         # inference networks
         qz_samples = []
@@ -187,12 +184,24 @@ class Statistician(nn.Module):
         }, save_path)
 
     def sample_conditioned(self, inputs):
-        assert self.training is False
+        c, _ = self.statistic_network(inputs)
 
-        outputs = self.forward(inputs)
-        samples = outputs[-1][1].view(self.batch_size, 50, 2)
+        # latent decoders
+        pz_samples = []
+        z = None
+        for i, latent_decoder in enumerate(self.latent_decoders):
+            z_mean, z_logvar = latent_decoder(z, c)
+            if i == 0:
+                z_mean = z_mean.repeat(self.sample_size, 1)
+                z_logvar = z_logvar.repeat(self.sample_size, 1)
+            z = self.reparameterize_gaussian(z_mean, z_logvar)
+            pz_samples.append(z)
 
-        return samples
+        # observation decoder
+        zs = torch.cat(pz_samples, dim=1)
+        x_mean, x_logvar = self.observation_decoder(zs, c)
+
+        return x_mean.view(self.batch_size, self.sample_size, self.n_features)
 
     def summarize_batch(self, inputs, output_size=6):
         summaries = []

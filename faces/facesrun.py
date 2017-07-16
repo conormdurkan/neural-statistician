@@ -1,14 +1,19 @@
 import argparse
 import os
+import sys
 import time
 
 from facesdata import YouTubeFacesSetsDataset
 from facesmodel import Statistician
 from facesplot import save_test_grid
 from torch import optim
+from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
+
+# put parent directory in path for utils
+sys.path.append(os.path.abspath('..'))
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
@@ -84,7 +89,8 @@ def run(model, optimizer, loaders, datasets):
         model.train()
         running_vlb = 0
         for batch in train_loader:
-            vlb = model.step(batch, alpha, optimizer, clip_gradients=args.clip_gradients)
+            inputs = Variable(batch.cuda())
+            vlb = model.step(inputs, alpha, optimizer, clip_gradients=args.clip_gradients)
             running_vlb += vlb
 
         # update running lower bound
@@ -97,10 +103,11 @@ def run(model, optimizer, loaders, datasets):
 
         # evaluate on test set by sampling conditioned on contexts
         model.eval()
-        if (epoch + 1) % viz_interval == 0:
+        if (epoch + 1) % 1 == 0:
             filename = time_stamp + '-grid-{}.png'.format(epoch + 1)
             save_path = os.path.join(args.output_dir, 'figures/' + filename)
-            inputs, samples = model.sample_conditioned(test_batch)
+            inputs = Variable(test_batch.cuda(), volatile=True)
+            samples = model.sample_conditioned(inputs)
             save_test_grid(inputs, samples, save_path)
 
         # checkpoint model at intervals

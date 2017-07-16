@@ -165,10 +165,9 @@ class Statistician(nn.Module):
 
         return loss, vlb
 
-    def step(self, batch, alpha, optimizer, clip_gradients=True):
+    def step(self, inputs, alpha, optimizer, clip_gradients=True):
         assert self.training is True
 
-        inputs = Variable(batch.cuda())
         outputs = self.forward(inputs)
         loss, vlb = self.loss(outputs, weight=(alpha + 1))
 
@@ -184,14 +183,43 @@ class Statistician(nn.Module):
         # output variational lower bound for batch
         return vlb.data[0]
 
-    def sample_conditioned(self, batch):
-        assert self.training is False
+    def sample(self):
+        c = torch.randn(self.batch_size, self.c_dim)
 
-        inputs = Variable(batch.cuda(), volatile=True)
-        outputs = self.forward(inputs)
-        samples = outputs[-1][1]
+        # latent decoders
+        pz_samples = []
+        z = None
+        for i, latent_decoder in enumerate(self.latent_decoders):
+            z_mean, z_logvar = latent_decoder(z, c)
+            z = self.reparameterize_gaussian(z_mean, z_logvar)
+            pz_samples.append(z)
 
-        return inputs, samples
+        # observation decoder
+        zs = torch.cat(pz_samples, dim=1)
+        x_mean, x_logvar = self.observation_decoder(zs, c)
+
+        return x_mean
+
+    def sample_conditioned(self, inputs):
+        h = self.shared_convolutional_encoder(inputs)
+        c, _ = self.statistic_network(h)
+
+        # latent decoders
+        pz_samples = []
+        z = None
+        for i, latent_decoder in enumerate(self.latent_decoders):
+            z_mean, z_logvar = latent_decoder(z, c)
+            if i == 0:
+                z_mean = z_mean.repeat(self.sample_size, 1)
+                z_logvar = z_logvar.repeat(self.sample_size, 1)
+            z = self.reparameterize_gaussian(z_mean, z_logvar)
+            pz_samples.append(z)
+
+        # observation decoder
+        zs = torch.cat(pz_samples, dim=1)
+        x_mean, x_logvar = self.observation_decoder(zs, c)
+
+        return x_mean
 
     def save(self, optimizer, path):
         torch.save({

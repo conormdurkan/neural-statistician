@@ -31,6 +31,7 @@ Before running the experiments, you need data. In particular, get the 28x28 grey
  
 ## Usage
 CPU only training is not supported. 
+
 ### Synthetic
 ```python synthrun.py```
 
@@ -41,6 +42,8 @@ CPU only training is not supported.
 ![](./synthetic/output/figures/hard-variances.pdf)
 
 ### Spatial MNIST
+```python spatialrun.py --data-dir```
+
 ```python spatialrun.py```
 
 ### Omniglot

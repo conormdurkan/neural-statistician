@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import time
 
 from omnidata import OmniglotSetsDataset, load_mnist_test_batch
@@ -10,6 +11,9 @@ from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
+
+# put parent directory in path for utils
+sys.path.append(os.path.abspath('..'))
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
@@ -102,18 +106,18 @@ def run(model, optimizer, loaders, datasets):
 
         # evaluate on test set by sampling conditioned on contexts
         model.eval()
-        if (epoch + 1) % 1 == 0:
+        if (epoch + 1) % viz_interval == 0:
             # unseen Omniglot
             filename = time_stamp + '-grid-{}.png'.format(epoch + 1)
             save_path = os.path.join(args.output_dir, 'figures/' + filename)
-            inputs = Variable(test_batch.cuda())
+            inputs = Variable(test_batch.cuda(), volatile=True)
             samples = model.sample_conditioned(inputs)
             save_test_grid(inputs, samples, save_path)
 
             # unseen MNIST
             filename = time_stamp + '-mnist-grid-{}.png'.format(epoch + 1)
             save_path = os.path.join(args.output_dir, 'figures/' + filename)
-            inputs = Variable(mnist_test_batch.cuda())
+            inputs = Variable(mnist_test_batch.cuda(), volatile=True)
             samples = model.sample_conditioned(inputs)
             save_test_grid(inputs, samples, save_path)
 

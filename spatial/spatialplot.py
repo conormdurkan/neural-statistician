@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 def grid(inputs, samples, summaries=None, save_path=None, ncols=10):
 
     inputs = inputs.data.cpu().numpy()
-    reconstructions = samples.data.cpu().numpy()
+    samples = samples.data.cpu().numpy()
     if summaries is not None:
         summaries = summaries.data.cpu().numpy()
     fig, axs = plt.subplots(nrows=2, ncols=ncols, figsize=(ncols, 2))
@@ -20,7 +20,7 @@ def grid(inputs, samples, summaries=None, save_path=None, ncols=10):
     for i in range(ncols):
         # fill one column of subplots per loop iteration
         plot_single(axs[0, i], inputs[i], s=5, color='C0')
-        plot_single(axs[1, i], reconstructions[i], s=5, color='C1')
+        plot_single(axs[1, i], samples[i], s=5, color='C1')
         if summaries is not None:
             plot_single(axs[1, i], summaries[i], s=10, color='C2')
 
