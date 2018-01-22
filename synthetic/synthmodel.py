@@ -1,3 +1,5 @@
+import os
+import sys
 import torch
 
 from synthnets import (StatisticNetwork, InferenceNetwork,
@@ -5,8 +7,14 @@ from synthnets import (StatisticNetwork, InferenceNetwork,
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F, init
-from utils import (kl_diagnormal_diagnormal, kl_diagnormal_stdnormal,
-                   gaussian_log_likelihood)
+try:
+    from utils import (kl_diagnormal_diagnormal, kl_diagnormal_stdnormal,
+                       gaussian_log_likelihood)
+except ModuleNotFoundError:
+    # put parent directory in path for utils
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    from utils import (kl_diagnormal_diagnormal, kl_diagnormal_stdnormal,
+                       gaussian_log_likelihood)
 
 
 # Model
