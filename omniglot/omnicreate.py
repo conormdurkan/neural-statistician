@@ -6,7 +6,7 @@ import pickle
 from scipy.io import loadmat
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', require=True, type=str, default=None)
+parser.add_argument('--data-dir', required=True, type=str, default=None)
 args = parser.parse_args()
 assert (args.data_dir is not None) and (os.path.isdir(args.data_dir))
 

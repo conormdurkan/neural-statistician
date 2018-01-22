@@ -61,7 +61,7 @@ def load_mnist_test_batch(data_dir, batch_size):
     ixs = [np.random.choice(np.where(labels == i)[0], size=5, replace=False)
            for i in range(10)]
     batch = np.array([images[ix] for ix in ixs])
-    return torch.from_numpy(batch).repeat((batch_size // 10) + 1, 1, 1)[:batch_size]
+    return torch.from_numpy(batch).clone().repeat((batch_size // 10) + 1, 1, 1)[:batch_size]
 
 
 class OmniglotSetsDataset(data.Dataset):

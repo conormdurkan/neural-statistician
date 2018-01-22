@@ -137,7 +137,7 @@ class Statistician(nn.Module):
 
         # 1. Reconstruction loss
         x, x_mean = x_outputs
-        recon_loss = bernoulli_log_likelihood(x, x_mean)
+        recon_loss = bernoulli_log_likelihood(x.view(-1, 1, 28, 28), x_mean)
         recon_loss /= (self.batch_size * self.sample_size)
 
         # 2. KL Divergence terms

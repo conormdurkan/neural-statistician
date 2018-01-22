@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', require=True, type=str, default=None)
+parser.add_argument('--data-dir', required=True, type=str, default=None)
 args = parser.parse_args()
 assert (args.data_dir is not None) and (os.path.isdir(args.data_dir))
 
@@ -51,18 +51,15 @@ def load_data():
     train_images = load_images(os.path.join(data_dir, train_images_gz))
     test_images = load_images(os.path.join(data_dir, test_images_gz))
     images = np.vstack((train_images, test_images))
-    print(images.shape)
 
     train_labels = load_labels(os.path.join(data_dir, train_labels_gz))
     test_labels = load_labels(os.path.join(data_dir, test_labels_gz))
     labels = np.hstack((train_labels, test_labels))
-    print(labels.shape)
 
     n = len(labels)
     one_hot = np.zeros((n, 10))
     one_hot[range(n), labels] = 1
     labels = one_hot
-    print(labels.shape)
 
     return images, labels
 
@@ -90,11 +87,11 @@ def create_spatial(images, labels, sample_size=50, plot=False):
             axs[i].set_aspect('equal', adjustable='box')
         plt.show()
 
-    spatial_path = os.path.join(args.data_dir, 'spatial.pkl')
+    spatial_path = os.path.join(args.data_dir, 'spatial/spatial.pkl')
     with open(spatial_path, 'wb') as file:
         pickle.dump(spatial, file)
 
-    labels_path = os.path.join(args.data_dir, 'labels.pkl')
+    labels_path = os.path.join(args.data_dir, 'spatial/labels.pkl')
     with open(labels_path, 'wb') as file:
         pickle.dump(labels, file)
 
