@@ -129,6 +129,7 @@ env.bak/
 venv.bak/
 
 .vscode/
+mnist-data/
 
 # Spyder project settings
 .spyderproject
